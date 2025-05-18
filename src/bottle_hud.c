@@ -1,5 +1,5 @@
 #include "bottle_hud.h"
-#include "mask_l_button.h"
+#include "input_handling.h"
 
 #include "sys_cmpdma.h"
 #include "rt64_extended_gbi.h"

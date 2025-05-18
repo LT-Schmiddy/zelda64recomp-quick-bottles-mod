@@ -1,5 +1,5 @@
-#ifndef __MASK_L_BUTTON__
-#define __MASK_L_BUTTON__
+#ifndef __INPUT_HANDLING__
+#define __INPUT_HANDLING__
 
 #include "modding.h"
 #include "global.h"
