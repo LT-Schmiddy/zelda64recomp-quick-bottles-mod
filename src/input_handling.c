@@ -15,6 +15,22 @@
 #include "z64player.h"
 
 BtnState BtnStateL;
+BtnState BtnStateDRight;
+BtnState BtnStateDLeft;
+
+void BtnState_Record( Input* input, BtnState* state, u16 btn, bool should_mask) {
+    state->cur = input->cur.button & btn;
+    state->prev = input->prev.button & btn;
+    state->press = input->press.button & btn;
+    state->rel = input->rel.button & btn;
+
+    if (should_mask) {
+        input->cur.button &= ~btn;
+        input->prev.button &= ~btn;
+        input->press.button &= ~btn;
+        input->rel.button &= ~btn;
+    }
+}
 
 
 RECOMP_HOOK("Player_UpdateCommon") void pre_Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
@@ -24,14 +40,13 @@ RECOMP_HOOK("Player_UpdateCommon") void pre_Player_UpdateCommon(Player* this, Pl
     }
     
     // Capture input:
-    BtnStateL.cur = input->cur.button & BTN_L;
-    BtnStateL.prev = input->prev.button & BTN_L;
-    BtnStateL.press = input->press.button & BTN_L;
-    BtnStateL.rel = input->rel.button & BTN_L;
+    BtnState_Record(input, &BtnStateL, BTN_L, false);
+    BtnState_Record(input, &BtnStateDRight, BTN_DRIGHT, BtnStateL.cur);
+    BtnState_Record(input, &BtnStateDLeft, BTN_DLEFT, BtnStateL.cur);
 
-    if (BtnStateL.press) {
-        recomp_printf("L Pressed\n");
-    }
+    // if (BtnStateL.press) {
+    //     recomp_printf("L Pressed\n");
+    // }
 }
 
 // Prevent minimap toggle while aiming if L config selected

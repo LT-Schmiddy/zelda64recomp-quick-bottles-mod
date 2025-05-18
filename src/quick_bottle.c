@@ -2,6 +2,8 @@
 #include "bottle_hud.h"
 #include "input_handling.h"
 
+#include "recomputils.h"
+
 ItemId bottle_items[NUMBER_BOTTLE_ITEMS] = {
     /* 0x12 */ ITEM_BOTTLE,
     /* 0x13 */ ITEM_POTION_RED,
@@ -29,40 +31,104 @@ ItemId bottle_items[NUMBER_BOTTLE_ITEMS] = {
 
 QuickBottleController quickBottle;
 
+RECOMP_CALLBACK("*", recomp_on_init) void setup_quickBottle() {
+    quickBottle.bottleIndex = 0;
+    quickBottle.triggered = false;
+    quickBottle.quick_press_timer = 0;
+}
+
 void Player_UseItem(PlayState* play, Player* this, ItemId item);
 void Interface_StartBottleTimer(s16 seconds, s16 timerId);
 
+static u8 L_Timer = 0;
+
 static bool skip_regular_processing = false;
 static Player* captured_player = NULL;
-static u32 old_equip;
+
+int QuickBottle_GetSelectedInventorySlot() {
+    return FIRST_BOTTLE_INVENTORY_SLOT + + quickBottle.bottleIndex;
+}
+
+ItemId QuickBottle_GetBottleId(int index) {
+    return gSaveContext.save.saveInfo.inventory.items[FIRST_BOTTLE_INVENTORY_SLOT + index];
+}
+
+ItemId QuickBottle_GetSelectedBottleId() {
+    return gSaveContext.save.saveInfo.inventory.items[FIRST_BOTTLE_INVENTORY_SLOT + quickBottle.bottleIndex];
+}
+
+void QuickBottle_Cycle(s8 offset) {
+    quickBottle.bottleIndex += offset;
+
+    // Wraping:
+    if (quickBottle.bottleIndex > MAX_BOTTLE_INDEX) {
+        quickBottle.bottleIndex = 0;
+    } else if (quickBottle.bottleIndex < 0) {
+        quickBottle.bottleIndex = MAX_BOTTLE_INDEX;
+    }
+
+    ItemId bottle = QuickBottle_GetSelectedBottleId();
+    recomp_printf("quickBottle.bottleIndex = %i\n", quickBottle.bottleIndex);
+    recomp_printf("bottle = 0x%00X\n", bottle);
+    Audio_PlaySfx(NA_SE_SY_CURSOR);
+}
+
 
 
 RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Player* this, PlayState* play) {
     captured_player = this;
-    if (BtnStateL.press) {
-        // Message_StartTextbox(play, 0x0002, NULL);
+    if (BtnStateL.rel) {
+        if (quickBottle.quick_press_timer < BOTTLE_QUICK_PRESS_TIME) {
+            // Player_UseItem(play, this, INV_CONTENT(ITEM_POTION_RED));
+            Player_UseItem(play, this, QuickBottle_GetSelectedBottleId());
+            quickBottle.triggered = true;
+            skip_regular_processing = true;
+            // this->stateFlags1 |= PLAYER_STATE1_20000000;
+        }
+        else {
+            Audio_PlaySfx(NA_SE_SY_DECIDE);
+        }
+    }
 
-        Player_UseItem(play, this, INV_CONTENT(ITEM_POTION_RED));
+    if (BtnStateL.cur) {
+        if (quickBottle.quick_press_timer < BOTTLE_QUICK_PRESS_TIME) {
+            quickBottle.quick_press_timer++;
+        } else {
+            // Audio_PlaySfx(NA_SE_SY_WIN_OPEN);
+        }
 
+        if (BtnStateDLeft.press) {
+            QuickBottle_Cycle(-1);
+            quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
+        }
 
-        skip_regular_processing = true;
-        this->stateFlags1 |= PLAYER_STATE1_20000000;
+        if (BtnStateDRight.press) {
+            QuickBottle_Cycle(1);
+            quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
+        }
 
-    } else if (BtnStateL.rel) {
+    } else{
+        quickBottle.quick_press_timer = 0;
     }
 }
 
 RECOMP_HOOK_RETURN("Player_ProcessItemButtons") void post_Player_ProcessItemButtons() {
     if (skip_regular_processing) {
-        captured_player->stateFlags1 &= ~PLAYER_STATE1_20000000;
-        
+        // captured_player->stateFlags1 &= ~PLAYER_STATE1_20000000;
         skip_regular_processing = false;
     }
 }
 
 RECOMP_PATCH void Inventory_UpdateBottleItem(PlayState* play, u8 item, u8 btn) {
-    // gSaveContext.save.saveInfo.inventory.items[GET_CUR_FORM_BTN_SLOT(btn)] = item;
-    // SET_CUR_FORM_BTN_ITEM(btn, item);
+    if (quickBottle.triggered) {
+        quickBottle.triggered = false;
+        gSaveContext.save.saveInfo.inventory.items[QuickBottle_GetSelectedInventorySlot()] = item;
+        return;
+    }
+
+    // Otherwise, use vanilla behavior:
+    gSaveContext.save.saveInfo.inventory.items[GET_CUR_FORM_BTN_SLOT(btn)] = item;
+    SET_CUR_FORM_BTN_ITEM(btn, item);
 
     Interface_LoadItemIconImpl(play, btn);
 

@@ -13,6 +13,8 @@ typedef struct {
 
 
 extern BtnState BtnStateL;
+extern BtnState BtnStateDRight;
+extern BtnState BtnStateDLeft;
 
 
 #endif
