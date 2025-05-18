@@ -2,7 +2,20 @@
 #include "recomputils.h"
 #include "recompconfig.h"
 
+#include "sys_cmpdma.h"
+#include "rt64_extended_gbi.h"
+#include "recompconfig.h"
+#include "recomputils.h"
+#include "z64item.h"
+#include "z64interface.h"
+#include "kaleido_manager.h"
+#include "macros.h"
+#include "variables.h"
+#include "functions.h"
+#include "z64player.h"
+
 BtnState BtnStateL;
+
 
 RECOMP_HOOK("Player_UpdateCommon") void pre_Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
     // Kafei Prevention:
@@ -31,3 +44,5 @@ void pre_MapDisp_Update(PlayState* play) {
 
     R_MINIMAP_DISABLED = (u8)recomp_get_config_u32("minimap-visible");
 }
+
+

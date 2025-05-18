@@ -4,6 +4,8 @@
 #include "modding.h"
 #include "global.h"
 
-#define NUMBER_BOTTLE_ITEMS 22
+
+
+void SetBottleIcon(ItemId bottle);
 
 #endif

@@ -1,5 +1,6 @@
 #include "bottle_hud.h"
 #include "input_handling.h"
+#include "quick_bottle.h"
 
 #include "sys_cmpdma.h"
 #include "rt64_extended_gbi.h"
@@ -22,46 +23,25 @@
 #define ICON_DSDX (s32)(1024.0f * (float)(ICON_IMG_SIZE) / (ICON_SIZE))
 #define ICON_DTDY (s32)(1024.0f * (float)(ICON_IMG_SIZE) / (ICON_SIZE))
 
+static bool bottle_item_icons_loaded = false;
+static u8 bottle_item_textures[NUMBER_BOTTLE_ITEMS][ICON_IMG_SIZE * ICON_IMG_SIZE * 4] __attribute__((aligned(8)));
+static u8 extra_item_slot_statuses[NUMBER_BOTTLE_ITEMS];
+static s16 extra_item_slot_alpha = 0b011111111111111;
 
-bool bottle_item_icons_loaded = false;
-u8 bottle_item_textures[NUMBER_BOTTLE_ITEMS][ICON_IMG_SIZE * ICON_IMG_SIZE * 4] __attribute__((aligned(8)));
-u8 extra_item_slot_statuses[NUMBER_BOTTLE_ITEMS];
-s16 extra_item_slot_alpha = 0b011111111111111;
-ItemId bottle_items[NUMBER_BOTTLE_ITEMS] = {
-    /* 0x12 */ ITEM_BOTTLE,
-    /* 0x13 */ ITEM_POTION_RED,
-    /* 0x14 */ ITEM_POTION_GREEN,
-    /* 0x15 */ ITEM_POTION_BLUE,
-    /* 0x16 */ ITEM_FAIRY,
-    /* 0x17 */ ITEM_DEKU_PRINCESS,
-    /* 0x18 */ ITEM_MILK_BOTTLE,
-    /* 0x19 */ ITEM_MILK_HALF,
-    /* 0x1A */ ITEM_FISH,
-    /* 0x1B */ ITEM_BUG,
-    /* 0x1C */ ITEM_BLUE_FIRE,
-    /* 0x1D */ ITEM_POE,
-    /* 0x1E */ ITEM_BIG_POE,
-    /* 0x1F */ ITEM_SPRING_WATER,
-    /* 0x20 */ ITEM_HOT_SPRING_WATER,
-    /* 0x21 */ ITEM_ZORA_EGG,
-    /* 0x22 */ ITEM_GOLD_DUST,
-    /* 0x23 */ ITEM_MUSHROOM,
-    /* 0x24 */ ITEM_SEAHORSE,
-    /* 0x25 */ ITEM_CHATEAU,
-    /* 0x26 */ ITEM_HYLIAN_LOACH,
-    /* 0x27 */ ITEM_OBABA_DRINK,
-};
 
-int bottle_icon_index = 0;
+static int bottle_icon_index = 1;
+void SetBottleIcon(ItemId bottle) {
+    bottle_icon_index = bottle - 12;
+}
 
-RECOMP_HOOK("Interface_DrawCButtonIcons") void draw_dpad_icons(PlayState* play) {
+RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
     // Just in case:
 
-    if (BtnStateL.rel) {
-        if (++bottle_icon_index == NUMBER_BOTTLE_ITEMS) {
-            bottle_icon_index = 0;
-        }
-    }
+    // if (BtnStateL.rel) {
+    //     if (++bottle_icon_index == NUMBER_BOTTLE_ITEMS) {
+    //         bottle_icon_index = 0;
+    //     }
+    // }
 
     PauseContext* pauseCtx = &play->pauseCtx;
     if (pauseCtx->state == PAUSE_STATE_OFF) {

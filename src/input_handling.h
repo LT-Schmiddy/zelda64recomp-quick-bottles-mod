@@ -10,6 +10,9 @@ typedef struct {
     bool press;
     bool rel;
 } BtnState;
+
+
 extern BtnState BtnStateL;
+
 
 #endif
