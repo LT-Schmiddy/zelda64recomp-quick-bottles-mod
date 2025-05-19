@@ -38,11 +38,9 @@ int GetBottleIconIndex() {
 RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
     // Just in case:
 
-    // if (BtnStateL.rel) {
-    //     if (++bottle_icon_index == NUMBER_BOTTLE_ITEMS) {
-    //         bottle_icon_index = 0;
-    //     }
-    // }
+    if (QuickBottle_GetNumberOfBottles() <= 0) {
+        return;
+    }
 
     PauseContext* pauseCtx = &play->pauseCtx;
     if (pauseCtx->state == PAUSE_STATE_OFF) {

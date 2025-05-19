@@ -18,4 +18,9 @@ typedef struct {
 extern ItemId bottle_items[NUMBER_BOTTLE_ITEMS];
 extern QuickBottleController quickBottle;
 
+int QuickBottle_GetSelectedInventorySlot();
+ItemId QuickBottle_GetBottleId(int index);
+ItemId QuickBottle_GetSelectedBottleId();
+int QuickBottle_GetNumberOfBottles();
+
 #endif

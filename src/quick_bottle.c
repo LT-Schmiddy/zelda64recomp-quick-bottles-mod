@@ -40,13 +40,8 @@ RECOMP_CALLBACK("*", recomp_on_init) void setup_quickBottle() {
 void Player_UseItem(PlayState* play, Player* this, ItemId item);
 void Interface_StartBottleTimer(s16 seconds, s16 timerId);
 
-static u8 L_Timer = 0;
-
-static bool skip_regular_processing = false;
-static Player* captured_player = NULL;
-
 int QuickBottle_GetSelectedInventorySlot() {
-    return FIRST_BOTTLE_INVENTORY_SLOT + + quickBottle.bottleIndex;
+    return FIRST_BOTTLE_INVENTORY_SLOT + quickBottle.bottleIndex;
 }
 
 ItemId QuickBottle_GetBottleId(int index) {
@@ -55,6 +50,20 @@ ItemId QuickBottle_GetBottleId(int index) {
 
 ItemId QuickBottle_GetSelectedBottleId() {
     return gSaveContext.save.saveInfo.inventory.items[FIRST_BOTTLE_INVENTORY_SLOT + quickBottle.bottleIndex];
+}
+
+int QuickBottle_GetNumberOfBottles() {
+    int retVal = 0;
+
+    for (int i = 0; i < 6; i++) {
+        ItemId item = QuickBottle_GetBottleId(i);
+
+        if (item >= ITEM_BOTTLE && item <= ITEM_OBABA_DRINK) {
+            retVal++;
+        }
+    }
+
+    return retVal;
 }
 
 void QuickBottle_Cycle(s8 offset) {
@@ -73,8 +82,9 @@ void QuickBottle_Cycle(s8 offset) {
     Audio_PlaySfx(NA_SE_SY_CURSOR);
 }
 
-
-
+static u8 L_Timer = 0;
+static bool skip_regular_processing = false;
+static Player* captured_player = NULL;
 RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Player* this, PlayState* play) {
     captured_player = this;
     if (BtnStateL.rel) {
