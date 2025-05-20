@@ -4,8 +4,4 @@
 #include "modding.h"
 #include "global.h"
 
-
-
-void SetBottleIcon(ItemId bottle);
-
 #endif

@@ -20,25 +20,35 @@
 #define ICON_POS_X 24
 #define ICON_POS_Y 187
 
+#define BOTTLE_ICON_SPACING_X 14
+#define BOTTLE_ICON_SPACING_Y 16
+
 #define ICON_DSDX (s32)(1024.0f * (float)(ICON_IMG_SIZE) / (ICON_SIZE))
 #define ICON_DTDY (s32)(1024.0f * (float)(ICON_IMG_SIZE) / (ICON_SIZE))
 
 extern u8 gEquippedItemOutlineTex[];
+extern u8 gHookshotReticleTex[];
 
 static bool bottle_item_icons_loaded = false;
 static u8 bottle_item_textures[NUMBER_BOTTLE_ITEMS][ICON_IMG_SIZE * ICON_IMG_SIZE * 4] __attribute__((aligned(8)));
 static u8 extra_item_slot_statuses[NUMBER_BOTTLE_ITEMS];
 static s16 extra_item_slot_alpha = 0b011111111111111;
 
-int GetBottleIconIndex() {
-    ItemId bottle = gSaveContext.save.saveInfo.inventory.items[FIRST_BOTTLE_INVENTORY_SLOT + quickBottle.bottleIndex];
+int GetBottleIconIndex(int bottle_index) {
+    ItemId bottle = gSaveContext.save.saveInfo.inventory.items[FIRST_BOTTLE_INVENTORY_SLOT + bottle_index];
     return bottle - 0x12;
 }
 
-RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
-    // Just in case:
+int GetBottleSelectedIconIndex() {
+    return GetBottleIconIndex(quickBottle.bottleIndex);
+}
 
-    if (QuickBottle_GetNumberOfBottles() <= 0) {
+
+
+RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
+
+    // If there aren't any bottles, do nothing.
+    if (!quickBottle.numberOfBottles) {
         return;
     }
 
@@ -58,28 +68,44 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
         // Set a fullscreen scissor.
         gEXPushScissor(OVERLAY_DISP++);
 
-        // gDPLoadTextureBlock(OVERLAY_DISP++, gEquippedItemOutlineTex, G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
-        //                     G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-        // gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, extra_item_slot_alpha);
-        // gEXTextureRectangle(OVERLAY_DISP++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT,
-        //     (ICON_POS_X - (ICON_SIZE/2)) * 4, (ICON_POS_Y - (ICON_SIZE/2)) * 4,
-        //     (ICON_POS_X + (ICON_SIZE/2)) * 4, (ICON_POS_Y + (ICON_SIZE/2)) * 4,
-        //     0,
-        //     0, 0,
-        //     ICON_DSDX, ICON_DTDY);
-
         gEXSetScissor(OVERLAY_DISP++, G_SC_NON_INTERLACE, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_RIGHT, 0, 0, 0, SCREEN_HEIGHT);
+        
+        for (int i = 0; i < 6; i++) {
+            s8 x_offset = i;
+            s8 y_offset = 0;
+            if (i >= 3) {
+                x_offset -= 3;
+                y_offset = -1;
+            }
 
-        gDPLoadTextureBlock(OVERLAY_DISP++, bottle_item_textures[GetBottleIconIndex()], G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
-                            G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-        gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, extra_item_slot_alpha);
-        gEXTextureRectangle(OVERLAY_DISP++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT,
-            (ICON_POS_X - (ICON_SIZE/2)) * 4, (ICON_POS_Y - (ICON_SIZE/2)) * 4,
-            (ICON_POS_X + (ICON_SIZE/2)) * 4, (ICON_POS_Y + (ICON_SIZE/2)) * 4,
-            0,
-            0, 0,
-            ICON_DSDX, ICON_DTDY);
+            if (i == quickBottle.bottleIndex){
+                // gDPLoadTextureBlock(OVERLAY_DISP++, gEquippedItemOutlineTex, G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
+                //     G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+                gDPLoadTextureBlock(OVERLAY_DISP++, gEquippedItemOutlineTex, G_IM_FMT_I, G_IM_SIZ_8b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
+                    G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+                gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, extra_item_slot_alpha);
+                gEXTextureRectangle(OVERLAY_DISP++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT,
+                    (ICON_POS_X + (x_offset * BOTTLE_ICON_SPACING_X) - (ICON_SIZE/2)) * 4, (ICON_POS_Y + (y_offset * BOTTLE_ICON_SPACING_Y) - (ICON_SIZE/2)) * 4,
+                    (ICON_POS_X + (x_offset * BOTTLE_ICON_SPACING_X) + (ICON_SIZE/2)) * 4, (ICON_POS_Y + (y_offset * BOTTLE_ICON_SPACING_Y) + (ICON_SIZE/2)) * 4,
+                    2,
+                    0, 0,
+                    ICON_DSDX, ICON_DTDY);
+            }
+            
 
+
+            if (QuickBottle_IsValidBottleItem(QuickBottle_GetBottleId(i))) {
+                gDPLoadTextureBlock(OVERLAY_DISP++, bottle_item_textures[GetBottleIconIndex(i)], G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
+                    G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+                gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, extra_item_slot_alpha);
+                gEXTextureRectangle(OVERLAY_DISP++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT,
+                    (ICON_POS_X + (x_offset * BOTTLE_ICON_SPACING_X) - (ICON_SIZE/2)) * 4, (ICON_POS_Y + (y_offset * BOTTLE_ICON_SPACING_Y) - (ICON_SIZE/2)) * 4,
+                    (ICON_POS_X + (x_offset * BOTTLE_ICON_SPACING_X) + (ICON_SIZE/2)) * 4, (ICON_POS_Y + (y_offset * BOTTLE_ICON_SPACING_Y) + (ICON_SIZE/2)) * 4,
+                    0,
+                    0, 0,
+                    ICON_DSDX, ICON_DTDY);
+            }
+        }
         gEXForceUpscale2D(OVERLAY_DISP++, 0);
         // Restore the previous scissor.
         gEXPopScissor(OVERLAY_DISP++);

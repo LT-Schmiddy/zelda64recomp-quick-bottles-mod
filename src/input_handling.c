@@ -15,8 +15,10 @@
 #include "z64player.h"
 
 BtnState BtnStateL;
+BtnState BtnStateDUp;
 BtnState BtnStateDRight;
 BtnState BtnStateDLeft;
+BtnState BtnStateDDown;
 
 void BtnState_Record( Input* input, BtnState* state, u16 btn, bool should_mask) {
     state->cur = input->cur.button & btn;
@@ -41,8 +43,10 @@ RECOMP_HOOK("Player_UpdateCommon") void pre_Player_UpdateCommon(Player* this, Pl
     
     // Capture input:
     BtnState_Record(input, &BtnStateL, BTN_L, false);
+    BtnState_Record(input, &BtnStateDUp, BTN_DUP, BtnStateL.cur);
     BtnState_Record(input, &BtnStateDRight, BTN_DRIGHT, BtnStateL.cur);
     BtnState_Record(input, &BtnStateDLeft, BTN_DLEFT, BtnStateL.cur);
+    BtnState_Record(input, &BtnStateDDown, BTN_DDOWN, BtnStateL.cur);
 
     // if (BtnStateL.press) {
     //     recomp_printf("L Pressed\n");
