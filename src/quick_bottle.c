@@ -4,6 +4,44 @@
 
 #include "recomputils.h"
 
+#include "macros.h"
+#include "z64interface.h"
+#include "z64inventory.h"
+#include "objects/gameplay_keep/gameplay_keep.h"
+
+// EXTERNALS:
+#define BOTTLE_CATCH_PARAMS_ANY -1
+typedef struct struct_8085D798 {
+    /* 0x0 */ s16 actorId;
+    /* 0x2 */ s8 actorParams;
+    /* 0x3 */ u8 itemId;
+    /* 0x4 */ u8 itemAction;
+    /* 0x5 */ u8 textId;
+} struct_8085D798; // size = 0x6
+
+typedef struct struct_8085D200 {
+    /* 0x0 */ PlayerAnimationHeader* unk_0;
+    /* 0x4 */ PlayerAnimationHeader* unk_4;
+    /* 0x8 */ u8 unk_8;
+    /* 0x9 */ u8 unk_9;
+} struct_8085D200; // size = 0xC
+
+extern LinkAnimationHeader gPlayerAnim_link_bottle_bug_in;
+extern LinkAnimationHeader gPlayerAnim_link_bottle_bug_miss;
+extern LinkAnimationHeader gPlayerAnim_link_bottle_fish_in;
+extern LinkAnimationHeader gPlayerAnim_link_bottle_fish_miss;
+extern struct_8085D200 D_8085D200[2];
+extern struct_8085D798 D_8085D798[14];
+void Player_UseItem(PlayState* play, Player* this, ItemId item);
+void Interface_StartBottleTimer(s16 seconds, s16 timerId);
+s32 Player_DecelerateToZero(Player* this);
+bool func_808323C0(Player* this, s16 csId);
+void Player_StopCutscene(Player* this);
+void Player_StartTalking(PlayState* play, Actor* actor);
+void func_80839E74(Player* this, PlayState* play);
+void Player_Anim_PlayOnceAdjusted(PlayState* play, Player* this, PlayerAnimationHeader* anim);
+
+// Quick Bottle Functions and Data:
 ItemId bottle_items[NUMBER_BOTTLE_ITEMS] = {
     /* 0x12 */ ITEM_BOTTLE,
     /* 0x13 */ ITEM_POTION_RED,
@@ -31,15 +69,6 @@ ItemId bottle_items[NUMBER_BOTTLE_ITEMS] = {
 
 QuickBottleController quickBottle;
 
-RECOMP_CALLBACK("*", recomp_on_init) void setup_quickBottle() {
-    quickBottle.bottleIndex = 0;
-    quickBottle.triggered = false;
-    quickBottle.quick_press_timer = 0;
-}
-
-void Player_UseItem(PlayState* play, Player* this, ItemId item);
-void Interface_StartBottleTimer(s16 seconds, s16 timerId);
-
 int QuickBottle_GetSelectedInventorySlot() {
     return FIRST_BOTTLE_INVENTORY_SLOT + quickBottle.bottleIndex;
 }
@@ -52,28 +81,37 @@ ItemId QuickBottle_GetSelectedBottleId() {
     return gSaveContext.save.saveInfo.inventory.items[FIRST_BOTTLE_INVENTORY_SLOT + quickBottle.bottleIndex];
 }
 
+
+bool QuickBottle_IsValidBottleItem(ItemId item)  {
+    return item >= ITEM_BOTTLE && item <= ITEM_OBABA_DRINK;
+}
+
 int QuickBottle_GetNumberOfBottles() {
     int retVal = 0;
 
     for (int i = 0; i < 6; i++) {
         ItemId item = QuickBottle_GetBottleId(i);
 
-        if (item >= ITEM_BOTTLE && item <= ITEM_OBABA_DRINK) {
+        if (QuickBottle_IsValidBottleItem(item)) {
             retVal++;
         }
     }
-
+    quickBottle.numberOfBottles = retVal;
     return retVal;
 }
 
 void QuickBottle_Cycle(s8 offset) {
-    quickBottle.bottleIndex += offset;
+    
+    
+    for (int i = 0; i < ABS(offset); i++) {
+        quickBottle.bottleIndex += offset / ABS(offset);
+        // Wraping:
+        if (quickBottle.bottleIndex > MAX_BOTTLE_INDEX) {
+            quickBottle.bottleIndex = 0;
+        } else if (quickBottle.bottleIndex < 0) {
+            quickBottle.bottleIndex = MAX_BOTTLE_INDEX;
+        }
 
-    // Wraping:
-    if (quickBottle.bottleIndex > MAX_BOTTLE_INDEX) {
-        quickBottle.bottleIndex = 0;
-    } else if (quickBottle.bottleIndex < 0) {
-        quickBottle.bottleIndex = MAX_BOTTLE_INDEX;
     }
 
     ItemId bottle = QuickBottle_GetSelectedBottleId();
@@ -82,18 +120,37 @@ void QuickBottle_Cycle(s8 offset) {
     Audio_PlaySfx(NA_SE_SY_CURSOR);
 }
 
+// Patches and Callbacks:
+RECOMP_CALLBACK("*", recomp_on_init) void setup_quickBottle() {
+    quickBottle.bottleIndex = 0;
+    quickBottle.triggered = false;
+    quickBottle.quick_press_timer = 0;
+    quickBottle.quick_press_timer = BOTTLE_POST_RELEASE_TIME;
+}
+
 static u8 L_Timer = 0;
 static bool skip_regular_processing = false;
 static Player* captured_player = NULL;
 RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Player* this, PlayState* play) {
     captured_player = this;
+    if (!QuickBottle_GetNumberOfBottles()) {
+        return;
+    }
+
+    if (quickBottle.post_release_timer < BOTTLE_POST_RELEASE_TIME) {
+        quickBottle.post_release_timer++;
+    }
+
     if (BtnStateL.rel) {
-        if (quickBottle.quick_press_timer < BOTTLE_QUICK_PRESS_TIME) {
-            // Player_UseItem(play, this, INV_CONTENT(ITEM_POTION_RED));
-            Player_UseItem(play, this, QuickBottle_GetSelectedBottleId());
-            quickBottle.triggered = true;
-            skip_regular_processing = true;
-            // this->stateFlags1 |= PLAYER_STATE1_20000000;
+        if (quickBottle.quick_press_timer < BOTTLE_QUICK_PRESS_TIME) {          
+            if (QuickBottle_IsValidBottleItem(QuickBottle_GetSelectedBottleId())){
+                recomp_printf("bottle is valid\n");
+                Player_UseItem(play, this, QuickBottle_GetSelectedBottleId());
+                quickBottle.triggered = true;
+                skip_regular_processing = true;
+                quickBottle.post_release_timer = 0;
+                // this->stateFlags1 |= PLAYER_STATE1_20000000;
+            }
         }
         else {
             Audio_PlaySfx(NA_SE_SY_DECIDE);
@@ -107,6 +164,11 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
             // Audio_PlaySfx(NA_SE_SY_WIN_OPEN);
         }
 
+        if (BtnStateDUp.press) {
+            QuickBottle_Cycle(-3);
+            quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
+        }
+
         if (BtnStateDLeft.press) {
             QuickBottle_Cycle(-1);
             quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
@@ -114,6 +176,11 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
 
         if (BtnStateDRight.press) {
             QuickBottle_Cycle(1);
+            quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
+        }
+
+        if (BtnStateDDown.press) {
+            QuickBottle_Cycle(3);
             quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
         }
 
@@ -133,9 +200,24 @@ RECOMP_PATCH void Inventory_UpdateBottleItem(PlayState* play, u8 item, u8 btn) {
     if (quickBottle.triggered) {
         quickBottle.triggered = false;
         gSaveContext.save.saveInfo.inventory.items[QuickBottle_GetSelectedInventorySlot()] = item;
+
+        // Updating C Buttons if a bottle is equipped there:
+        for (EquipSlot i = EQUIP_SLOT_B; i < EQUIP_SLOT_A; i++) {
+            // recomp_printf("Button %i = 0x%02X, (%i)\n", i, GET_CUR_FORM_BTN_SLOT(i), GET_CUR_FORM_BTN_SLOT(i));
+            if (GET_CUR_FORM_BTN_SLOT(i) == QuickBottle_GetSelectedInventorySlot()) {
+                SET_CUR_FORM_BTN_ITEM(i, item);
+                Interface_LoadItemIconImpl(play, i);
+                gSaveContext.buttonStatus[i] = BTN_ENABLED;
+            }
+        }
+
+        if (item == ITEM_HOT_SPRING_WATER) {
+            Interface_StartBottleTimer(60, QuickBottle_GetSelectedInventorySlot());
+        }
         return;
     }
 
+    // recomp_printf("Button %i = 0x%02X, (%i)\n", btn, GET_CUR_FORM_BTN_SLOT(btn), GET_CUR_FORM_BTN_SLOT(btn));
     // Otherwise, use vanilla behavior:
     gSaveContext.save.saveInfo.inventory.items[GET_CUR_FORM_BTN_SLOT(btn)] = item;
     SET_CUR_FORM_BTN_ITEM(btn, item);
@@ -145,7 +227,77 @@ RECOMP_PATCH void Inventory_UpdateBottleItem(PlayState* play, u8 item, u8 btn) {
     play->pauseCtx.cursorItem[PAUSE_ITEM] = item;
     gSaveContext.buttonStatus[btn] = BTN_ENABLED;
 
-    if (item == ITEM_HOT_SPRING_WATER) {
-        Interface_StartBottleTimer(60, GET_CUR_FORM_BTN_SLOT(btn) - SLOT_BOTTLE_1);
+}
+
+RECOMP_PATCH void Player_Action_68(Player* this, PlayState* play) {
+    struct_8085D200* sp24 = &D_8085D200[this->av2.actionVar2];
+
+    Player_DecelerateToZero(this);
+
+    if (PlayerAnimation_Update(play, &this->skelAnime)) {
+        if (this->av1.actionVar1 != 0) {
+            func_808323C0(this, play->playerCsIds[PLAYER_CS_ID_ITEM_SHOW]);
+
+            if (this->av2.actionVar2 == 0) {
+                Message_StartTextbox(play, D_8085D798[this->av1.actionVar1 - 1].textId, &this->actor);
+
+                Audio_PlayFanfare(NA_BGM_GET_ITEM | 0x900);
+                this->av2.actionVar2 = 1;
+            } else if (Message_GetState(&play->msgCtx) == TEXT_STATE_CLOSING) {
+                Actor* talkActor;
+
+                this->av1.actionVar1 = 0;
+                Player_StopCutscene(this);
+                Camera_SetFinishedFlag(Play_GetCamera(play, CAM_ID_MAIN));
+
+                talkActor = this->talkActor;
+                if ((talkActor != NULL) && (this->exchangeItemAction <= PLAYER_IA_MINUS1)) {
+                    Player_StartTalking(play, talkActor);
+                }
+            }
+        } else {
+            func_80839E74(this, play);
+        }
+    } else {
+        if (this->av1.actionVar1 == 0) {
+            s32 temp_ft5 = this->skelAnime.curFrame - sp24->unk_8;
+
+            if ((temp_ft5 >= 0) && (sp24->unk_9 >= temp_ft5)) {
+                if ((this->av2.actionVar2 != 0) && (temp_ft5 == 0)) {
+                    Player_PlaySfx(this, NA_SE_IT_SCOOP_UP_WATER);
+                }
+
+                if (Player_GetItemOnButton(play, this, this->heldItemButton) == ITEM_BOTTLE || quickBottle.post_release_timer < BOTTLE_POST_RELEASE_TIME) {
+                    Actor* interactRangeActor = this->interactRangeActor;
+
+                    if (interactRangeActor != NULL) {
+                        struct_8085D798* entry = D_8085D798;
+                        s32 i;
+
+                        for (i = 0; i < ARRAY_COUNT(D_8085D798); i++) {
+                            if (((interactRangeActor->id == entry->actorId) &&
+                                 ((entry->actorParams <= BOTTLE_CATCH_PARAMS_ANY) ||
+                                  (interactRangeActor->params == entry->actorParams)))) {
+                                break;
+                            }
+                            entry++;
+                        }
+
+                        if (i < ARRAY_COUNT(D_8085D798)) {
+                            this->av1.actionVar1 = i + 1;
+                            this->av2.actionVar2 = 0;
+                            this->stateFlags1 |= PLAYER_STATE1_10000000 | PLAYER_STATE1_20000000;
+                            interactRangeActor->parent = &this->actor;
+                            Player_UpdateBottleHeld(play, this, entry->itemId, entry->itemAction);
+                            Player_Anim_PlayOnceAdjusted(play, this, sp24->unk_4);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (this->skelAnime.curFrame <= 7.0f) {
+            this->stateFlags3 |= PLAYER_STATE3_800;
+        }
     }
 }
