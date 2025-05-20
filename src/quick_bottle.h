@@ -9,12 +9,14 @@
 #define FIRST_BOTTLE_INVENTORY_SLOT 18
 #define BOTTLE_QUICK_PRESS_TIME 10
 #define BOTTLE_POST_RELEASE_TIME 20
+#define BOTTLE_AUTO_PUT_AWAY_TIME 5
 
 typedef struct {
     s8 bottleIndex;
     bool triggered;
     u8 quick_press_timer;
     u8 post_release_timer;
+    u8 auto_put_away_timer;
     u8 numberOfBottles;
 } QuickBottleController; 
 

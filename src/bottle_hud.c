@@ -87,7 +87,7 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
                 gEXTextureRectangle(OVERLAY_DISP++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT,
                     (ICON_POS_X + (x_offset * BOTTLE_ICON_SPACING_X) - (ICON_SIZE/2)) * 4, (ICON_POS_Y + (y_offset * BOTTLE_ICON_SPACING_Y) - (ICON_SIZE/2)) * 4,
                     (ICON_POS_X + (x_offset * BOTTLE_ICON_SPACING_X) + (ICON_SIZE/2)) * 4, (ICON_POS_Y + (y_offset * BOTTLE_ICON_SPACING_Y) + (ICON_SIZE/2)) * 4,
-                    2,
+                    0,
                     0, 0,
                     ICON_DSDX, ICON_DTDY);
             }
@@ -97,7 +97,7 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
             if (QuickBottle_IsValidBottleItem(QuickBottle_GetBottleId(i))) {
                 gDPLoadTextureBlock(OVERLAY_DISP++, bottle_item_textures[GetBottleIconIndex(i)], G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
                     G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-                gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, extra_item_slot_alpha);
+                gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, extra_item_slot_alpha / 2);
                 gEXTextureRectangle(OVERLAY_DISP++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT,
                     (ICON_POS_X + (x_offset * BOTTLE_ICON_SPACING_X) - (ICON_SIZE/2)) * 4, (ICON_POS_Y + (y_offset * BOTTLE_ICON_SPACING_Y) - (ICON_SIZE/2)) * 4,
                     (ICON_POS_X + (x_offset * BOTTLE_ICON_SPACING_X) + (ICON_SIZE/2)) * 4, (ICON_POS_Y + (y_offset * BOTTLE_ICON_SPACING_Y) + (ICON_SIZE/2)) * 4,

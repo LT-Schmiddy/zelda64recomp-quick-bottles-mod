@@ -125,13 +125,16 @@ RECOMP_CALLBACK("*", recomp_on_init) void setup_quickBottle() {
     quickBottle.bottleIndex = 0;
     quickBottle.triggered = false;
     quickBottle.quick_press_timer = 0;
-    quickBottle.quick_press_timer = BOTTLE_POST_RELEASE_TIME;
+    quickBottle.post_release_timer = BOTTLE_POST_RELEASE_TIME;
+    quickBottle.auto_put_away_timer = BOTTLE_AUTO_PUT_AWAY_TIME;
 }
 
 static u8 L_Timer = 0;
 static bool skip_regular_processing = false;
 static Player* captured_player = NULL;
 RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Player* this, PlayState* play) {
+
+
     captured_player = this;
     if (!QuickBottle_GetNumberOfBottles()) {
         return;
@@ -147,9 +150,9 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
                 recomp_printf("bottle is valid\n");
                 Player_UseItem(play, this, QuickBottle_GetSelectedBottleId());
                 quickBottle.triggered = true;
-                skip_regular_processing = true;
                 quickBottle.post_release_timer = 0;
-                // this->stateFlags1 |= PLAYER_STATE1_20000000;
+                quickBottle.auto_put_away_timer = 0;
+                
             }
         }
         else {
@@ -187,11 +190,25 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
     } else{
         quickBottle.quick_press_timer = 0;
     }
+
+
+    if (quickBottle.auto_put_away_timer <= BOTTLE_AUTO_PUT_AWAY_TIME) {
+        quickBottle.auto_put_away_timer++;
+    } 
+    
+    if (quickBottle.auto_put_away_timer == BOTTLE_AUTO_PUT_AWAY_TIME) {
+        Player_UseItem(play, this, ITEM_NONE);
+    }
+
+    if (QuickBottle_IsValidBottleItem(this->heldItemId) && !BtnStateEquips.press) {
+        skip_regular_processing = true;
+        this->stateFlags1 |= PLAYER_STATE1_20000000;
+    }
 }
 
 RECOMP_HOOK_RETURN("Player_ProcessItemButtons") void post_Player_ProcessItemButtons() {
     if (skip_regular_processing) {
-        // captured_player->stateFlags1 &= ~PLAYER_STATE1_20000000;
+        captured_player->stateFlags1 &= ~PLAYER_STATE1_20000000;
         skip_regular_processing = false;
     }
 }

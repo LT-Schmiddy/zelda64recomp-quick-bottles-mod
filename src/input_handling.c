@@ -19,6 +19,7 @@ BtnState BtnStateDUp;
 BtnState BtnStateDRight;
 BtnState BtnStateDLeft;
 BtnState BtnStateDDown;
+BtnState BtnStateEquips;
 
 void BtnState_Record( Input* input, BtnState* state, u16 btn, bool should_mask) {
     state->cur = input->cur.button & btn;
@@ -47,6 +48,8 @@ RECOMP_HOOK("Player_UpdateCommon") void pre_Player_UpdateCommon(Player* this, Pl
     BtnState_Record(input, &BtnStateDRight, BTN_DRIGHT, BtnStateL.cur);
     BtnState_Record(input, &BtnStateDLeft, BTN_DLEFT, BtnStateL.cur);
     BtnState_Record(input, &BtnStateDDown, BTN_DDOWN, BtnStateL.cur);
+    
+    BtnState_Record(input, &BtnStateEquips, BTN_DUP | BTN_DDOWN | BTN_DLEFT | BTN_DRIGHT | BTN_B | BTN_CLEFT | BTN_CDOWN | BTN_CRIGHT, false);
 
     // if (BtnStateL.press) {
     //     recomp_printf("L Pressed\n");

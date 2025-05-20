@@ -17,6 +17,8 @@ extern BtnState BtnStateDUp;
 extern BtnState BtnStateDRight;
 extern BtnState BtnStateDLeft;
 extern BtnState BtnStateDDown;
+extern BtnState BtnStateEquips;
+
 
 
 #endif
