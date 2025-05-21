@@ -1,6 +1,7 @@
 #include "quick_bottle.h"
 #include "bottle_hud.h"
 #include "input_handling.h"
+#include "proxymm_kv.h"
 
 #include "recomputils.h"
 
@@ -8,6 +9,8 @@
 #include "z64interface.h"
 #include "z64inventory.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
+
+#define LOAD_SAVE_SELECTION_KEY "LT_Schmiddy.QuickBottles.bottleIndex"
 
 // EXTERNALS:
 #define BOTTLE_CATCH_PARAMS_ANY -1
@@ -100,43 +103,85 @@ int QuickBottle_GetNumberOfBottles() {
     return retVal;
 }
 
-void QuickBottle_Cycle(s8 offset) {
-    
-    
-    for (int i = 0; i < ABS(offset); i++) {
-        quickBottle.bottleIndex += offset / ABS(offset);
+void QuickBottle_UpdateSelectedBottleIfInvalid(int direction) {
+    if (!quickBottle.numberOfBottles || direction == 0) {
+        return;
+    }
+    while (!QuickBottle_IsValidBottleItem(QuickBottle_GetSelectedBottleId())) {
+        quickBottle.bottleIndex += direction;
         // Wraping:
         if (quickBottle.bottleIndex > MAX_BOTTLE_INDEX) {
             quickBottle.bottleIndex = 0;
         } else if (quickBottle.bottleIndex < 0) {
             quickBottle.bottleIndex = MAX_BOTTLE_INDEX;
         }
+    }
+}
 
+void QuickBottle_Cycle(s8 offset) {
+    // Preventing WHILE from going into an infinite loop.
+    if (!quickBottle.numberOfBottles || offset == 0 ) {
+        return;
     }
 
-    ItemId bottle = QuickBottle_GetSelectedBottleId();
-    recomp_printf("quickBottle.bottleIndex = %i\n", quickBottle.bottleIndex);
-    recomp_printf("bottle = 0x%00X\n", bottle);
+    int direction = offset / ABS(offset);
+
+    for (int i = 0; i < ABS(offset); i++) {
+        quickBottle.bottleIndex += direction;
+        // Wraping:
+        if (quickBottle.bottleIndex > MAX_BOTTLE_INDEX) {
+            quickBottle.bottleIndex = 0;
+        } else if (quickBottle.bottleIndex < 0) {
+            quickBottle.bottleIndex = MAX_BOTTLE_INDEX;
+        }
+    }
+    
+    // ItemId bottle = QuickBottle_GetSelectedBottleId();
+    // recomp_printf("quickBottle.bottleIndex = %i\n", quickBottle.bottleIndex);
+    // recomp_printf("bottle = 0x%00X\n", bottle);
     Audio_PlaySfx(NA_SE_SY_CURSOR);
 }
 
 // Patches and Callbacks:
-RECOMP_CALLBACK("*", recomp_on_init) void setup_quickBottle() {
-    quickBottle.bottleIndex = 0;
+
+int kl = 0b01011000;
+RECOMP_CALLBACK("*", recomp_after_play_init) void reset_quickBottle() {
     quickBottle.triggered = false;
     quickBottle.quick_press_timer = 0;
     quickBottle.post_release_timer = BOTTLE_POST_RELEASE_TIME;
     quickBottle.auto_put_away_timer = BOTTLE_AUTO_PUT_AWAY_TIME;
 }
 
+RECOMP_CALLBACK("*", recomp_on_init) void setup_quickBottle() {
+    quickBottle.bottleIndex = 0;
+    reset_quickBottle();
+}
+
+RECOMP_CALLBACK("*", recomp_on_load_save) void load_quickBottle() {
+    quickBottle.bottleIndex = KV_Slot_Get_S32(LOAD_SAVE_SELECTION_KEY, 0 );
+
+}
+
+RECOMP_CALLBACK("*", recomp_on_owl_save) void save_quickBottle_Owl() {
+    KV_Slot_Set_S32(LOAD_SAVE_SELECTION_KEY, quickBottle.bottleIndex);
+}
+
+RECOMP_HOOK_RETURN("Sram_SaveEndOfCycle") void save_quickBottle_SOT() {
+    KV_Slot_Set_S32(LOAD_SAVE_SELECTION_KEY, quickBottle.bottleIndex);
+}
+
+RECOMP_HOOK_RETURN("Sram_InitNewSave") void init_new_quickBottle() {
+    quickBottle.bottleIndex = 0;
+}
+
 static u8 L_Timer = 0;
 static bool skip_regular_processing = false;
 static Player* captured_player = NULL;
 RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Player* this, PlayState* play) {
-
+    QuickBottle_GetNumberOfBottles();
 
     captured_player = this;
-    if (!QuickBottle_GetNumberOfBottles()) {
+    if (!quickBottle.numberOfBottles ) {
         return;
     }
 
@@ -147,7 +192,7 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
     if (BtnStateL.rel) {
         if (quickBottle.quick_press_timer < BOTTLE_QUICK_PRESS_TIME) {          
             if (QuickBottle_IsValidBottleItem(QuickBottle_GetSelectedBottleId())){
-                recomp_printf("bottle is valid\n");
+                // recomp_printf("bottle is valid\n");
                 Player_UseItem(play, this, QuickBottle_GetSelectedBottleId());
                 quickBottle.triggered = true;
                 quickBottle.post_release_timer = 0;
@@ -159,7 +204,7 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
             Audio_PlaySfx(NA_SE_SY_DECIDE);
         }
     }
-
+    int validate_direction = 1;
     if (BtnStateL.cur) {
         if (quickBottle.quick_press_timer < BOTTLE_QUICK_PRESS_TIME) {
             quickBottle.quick_press_timer++;
@@ -170,11 +215,14 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
         if (BtnStateDUp.press) {
             QuickBottle_Cycle(-3);
             quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
+            validate_direction = -1;
+
         }
 
         if (BtnStateDLeft.press) {
             QuickBottle_Cycle(-1);
             quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
+            validate_direction = -1;
         }
 
         if (BtnStateDRight.press) {
@@ -191,12 +239,14 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
         quickBottle.quick_press_timer = 0;
     }
 
+    QuickBottle_UpdateSelectedBottleIfInvalid(validate_direction);
+
 
     if (quickBottle.auto_put_away_timer <= BOTTLE_AUTO_PUT_AWAY_TIME) {
         quickBottle.auto_put_away_timer++;
     } 
     
-    if (quickBottle.auto_put_away_timer == BOTTLE_AUTO_PUT_AWAY_TIME) {
+    if (quickBottle.auto_put_away_timer == BOTTLE_AUTO_PUT_AWAY_TIME && QuickBottle_IsValidBottleItem(this->heldItemId)) {
         Player_UseItem(play, this, ITEM_NONE);
     }
 

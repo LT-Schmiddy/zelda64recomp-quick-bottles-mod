@@ -12,7 +12,7 @@
 #define BOTTLE_AUTO_PUT_AWAY_TIME 5
 
 typedef struct {
-    s8 bottleIndex;
+    s32 bottleIndex;
     bool triggered;
     u8 quick_press_timer;
     u8 post_release_timer;
