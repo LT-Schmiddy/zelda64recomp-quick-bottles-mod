@@ -196,8 +196,10 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
                 Player_UseItem(play, this, QuickBottle_GetSelectedBottleId());
                 quickBottle.triggered = true;
                 quickBottle.post_release_timer = 0;
-                quickBottle.auto_put_away_timer = 0;
-                
+                // Automatically put away empty bottles.
+                if (QuickBottle_GetSelectedBottleId() == ITEM_BOTTLE) {
+                    quickBottle.auto_put_away_timer = 0;
+                }
             }
         }
         else {

@@ -31,8 +31,8 @@ extern u8 gHookshotReticleTex[];
 
 static bool bottle_item_icons_loaded = false;
 static u8 bottle_item_textures[NUMBER_BOTTLE_ITEMS][ICON_IMG_SIZE * ICON_IMG_SIZE * 4] __attribute__((aligned(8)));
-static u8 extra_item_slot_statuses[NUMBER_BOTTLE_ITEMS];
-static s16 extra_item_slot_alpha = 0b011111111111111;
+static u8 bottle_hud_status = 0;
+static s16 bottle_hud_alpha = 0b011111111111111;
 
 int GetBottleIconIndex(int bottle_index) {
     ItemId bottle = gSaveContext.save.saveInfo.inventory.items[FIRST_BOTTLE_INVENTORY_SLOT + bottle_index];
@@ -42,8 +42,6 @@ int GetBottleIconIndex(int bottle_index) {
 int GetBottleSelectedIconIndex() {
     return GetBottleIconIndex(quickBottle.bottleIndex);
 }
-
-
 
 RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
 
@@ -83,7 +81,7 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
                 //     G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                 gDPLoadTextureBlock(OVERLAY_DISP++, gEquippedItemOutlineTex, G_IM_FMT_I, G_IM_SIZ_8b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
                     G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-                gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, extra_item_slot_alpha);
+                gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, bottle_hud_alpha);
                 gEXTextureRectangle(OVERLAY_DISP++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT,
                     (ICON_POS_X + (x_offset * BOTTLE_ICON_SPACING_X) - (ICON_SIZE/2)) * 4, (ICON_POS_Y + (y_offset * BOTTLE_ICON_SPACING_Y) - (ICON_SIZE/2)) * 4,
                     (ICON_POS_X + (x_offset * BOTTLE_ICON_SPACING_X) + (ICON_SIZE/2)) * 4, (ICON_POS_Y + (y_offset * BOTTLE_ICON_SPACING_Y) + (ICON_SIZE/2)) * 4,
@@ -97,7 +95,7 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
             if (QuickBottle_IsValidBottleItem(QuickBottle_GetBottleId(i))) {
                 gDPLoadTextureBlock(OVERLAY_DISP++, bottle_item_textures[GetBottleIconIndex(i)], G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
                     G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-                gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, extra_item_slot_alpha / 2);
+                gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, bottle_hud_alpha);
                 gEXTextureRectangle(OVERLAY_DISP++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT,
                     (ICON_POS_X + (x_offset * BOTTLE_ICON_SPACING_X) - (ICON_SIZE/2)) * 4, (ICON_POS_Y + (y_offset * BOTTLE_ICON_SPACING_Y) - (ICON_SIZE/2)) * 4,
                     (ICON_POS_X + (x_offset * BOTTLE_ICON_SPACING_X) + (ICON_SIZE/2)) * 4, (ICON_POS_Y + (y_offset * BOTTLE_ICON_SPACING_Y) + (ICON_SIZE/2)) * 4,
@@ -112,4 +110,259 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
 
         CLOSE_DISPS(play->state.gfxCtx);
     }
+}
+
+/*
+static InterfaceContext* captured_interfaceCtx;
+RECOMP_HOOK("Interface_UpdateHudAlphas") void pre_Interface_UpdateHudAlphas(PlayState* play, s16 dimmingAlpha) {
+    InterfaceContext* interfaceCtx = &play->interfaceCtx;
+}
+
+RECOMP_HOOK_RETURN("Interface_UpdateHudAlphas") void post_Interface_UpdateHudAlphas() {
+    if (captured_interfaceCtx != NULL) {
+        bottle_hud_alpha = captured_interfaceCtx->healthAlpha;
+    }
+}
+*/
+
+
+RECOMP_HOOK ("Interface_UpdateButtonAlphasByStatus") void Interface_UpdateBottleAlphaByStatus(PlayState* play, s16 risingAlpha) {
+    InterfaceContext* interfaceCtx = &play->interfaceCtx;
+    
+
+    if (bottle_hud_status == BTN_DISABLED) {
+        if (bottle_hud_alpha != 70) {
+            bottle_hud_alpha = 70;
+        }
+    }
+    else {
+        if (bottle_hud_status != 255) {
+            bottle_hud_alpha = risingAlpha;
+        }
+    }
+    
+}
+
+
+RECOMP_HOOK("Interface_UpdateButtonAlphas") void Interface_UpdateBottleAlpha(PlayState* play, s16 dimmingAlpha, s16 risingAlpha) {
+    if (gSaveContext.hudVisibilityForceButtonAlphasByStatus) {
+        Interface_UpdateBottleAlphaByStatus(play, risingAlpha);
+        return;
+    }
+
+
+    if ((bottle_hud_alpha != 0) && (bottle_hud_alpha > dimmingAlpha)) {
+        bottle_hud_alpha = dimmingAlpha;
+    }
+}
+
+RECOMP_HOOK("Interface_UpdateHudAlphas") void pre_Interface_UpdateHudAlphas(PlayState* play, s16 dimmingAlpha) {
+    InterfaceContext* interfaceCtx = &play->interfaceCtx;
+    s16 risingAlpha = 255 - dimmingAlpha;
+
+
+    
+    switch (gSaveContext.nextHudVisibility) {
+        case HUD_VISIBILITY_NONE:
+        case HUD_VISIBILITY_NONE_ALT:
+        case HUD_VISIBILITY_B:
+            recomp_printf("HUD_VISIBILITY_B");
+            // @mod
+            
+                if ((bottle_hud_alpha != 0) && (bottle_hud_alpha > dimmingAlpha)) {
+                    bottle_hud_alpha = dimmingAlpha;
+                }
+            
+
+            break;
+
+        case HUD_VISIBILITY_HEARTS_WITH_OVERWRITE:
+            recomp_printf("HUD_VISIBILITY_HEARTS_WITH_OVERWRITE");
+            Interface_UpdateBottleAlpha(play, dimmingAlpha, risingAlpha + 0);
+
+
+            break;
+
+        case HUD_VISIBILITY_A:
+            recomp_printf("HUD_VISIBILITY_A");
+            // @mod
+            
+            if ((bottle_hud_alpha != 0) && (bottle_hud_alpha > dimmingAlpha)) {
+                bottle_hud_alpha = dimmingAlpha;
+            }
+            
+
+            break;
+
+        case HUD_VISIBILITY_A_HEARTS_MAGIC_WITH_OVERWRITE:
+            recomp_printf("HUD_VISIBILITY_A_HEARTS_MAGIC_WITH_OVERWRITE");
+            Interface_UpdateBottleAlpha(play, dimmingAlpha, risingAlpha);
+
+            break;
+
+        case HUD_VISIBILITY_A_HEARTS_MAGIC_MINIMAP_WITH_OVERWRITE:
+            recomp_printf("HUD_VISIBILITY_A_HEARTS_MAGIC_MINIMAP_WITH_OVERWRITE");
+            Interface_UpdateBottleAlpha(play, dimmingAlpha, risingAlpha);
+
+            break;
+
+        case HUD_VISIBILITY_ALL_NO_MINIMAP_W_DISABLED:
+            recomp_printf("HUD_VISIBILITY_ALL_NO_MINIMAP_W_DISABLED");
+            Interface_UpdateBottleAlphaByStatus(play, risingAlpha);
+
+            break;
+
+        case HUD_VISIBILITY_HEARTS_MAGIC:
+            recomp_printf("HUD_VISIBILITY_HEARTS_MAGIC");
+            // @mod
+            
+            if ((bottle_hud_alpha != 0) && (bottle_hud_alpha > dimmingAlpha)) {
+                bottle_hud_alpha = dimmingAlpha;
+            }
+            
+
+            break;
+
+        case HUD_VISIBILITY_B_ALT:
+            recomp_printf("HUD_VISIBILITY_B_ALT");
+            // @mod
+            
+            if ((bottle_hud_alpha != 0) && (bottle_hud_alpha > dimmingAlpha)) {
+                bottle_hud_alpha = dimmingAlpha;
+            }
+            
+
+            break;
+
+        case HUD_VISIBILITY_HEARTS:
+            recomp_printf("HUD_VISIBILITY_HEARTS");
+            // @mod
+            
+            if ((bottle_hud_alpha != 0) && (bottle_hud_alpha > dimmingAlpha)) {
+                bottle_hud_alpha = dimmingAlpha;
+            }
+            
+
+            break;
+
+        case HUD_VISIBILITY_A_B_MINIMAP:
+            recomp_printf("HUD_VISIBILITY_A_B_MINIMAP");
+            // @mod
+            
+            if ((bottle_hud_alpha != 0) && (bottle_hud_alpha > dimmingAlpha)) {
+                bottle_hud_alpha = dimmingAlpha;
+            }
+            
+
+            break;
+
+        case HUD_VISIBILITY_HEARTS_MAGIC_WITH_OVERWRITE:
+            recomp_printf("HUD_VISIBILITY_HEARTS_MAGIC_WITH_OVERWRITE");
+            Interface_UpdateBottleAlpha(play, dimmingAlpha, risingAlpha);
+
+            break;
+
+        case HUD_VISIBILITY_HEARTS_MAGIC_C:
+            recomp_printf("HUD_VISIBILITY_HEARTS_MAGIC_C");
+            // @mod
+            
+            if (bottle_hud_alpha != 255) {
+                bottle_hud_alpha = risingAlpha;
+            }
+            
+
+            break;
+
+        case HUD_VISIBILITY_ALL_NO_MINIMAP:
+            recomp_printf("HUD_VISIBILITY_ALL_NO_MINIMAP");
+            // @mod
+            
+            if (bottle_hud_alpha != 255) {
+                bottle_hud_alpha = risingAlpha;
+            }
+            
+
+
+            break;
+
+        case HUD_VISIBILITY_A_B_C:
+            recomp_printf("HUD_VISIBILITY_A_B_C");
+            // @mod
+            
+            if (bottle_hud_alpha != 255) {
+                bottle_hud_alpha = risingAlpha;
+            }
+            
+
+            break;
+
+        case HUD_VISIBILITY_B_MINIMAP:
+            recomp_printf("HUD_VISIBILITY_B_MINIMAP");
+
+            // @mod
+            
+            if ((bottle_hud_alpha != 0) && (bottle_hud_alpha > dimmingAlpha)) {
+                bottle_hud_alpha = dimmingAlpha;
+            }
+            
+
+
+            break;
+
+        case HUD_VISIBILITY_HEARTS_MAGIC_MINIMAP:
+            recomp_printf("HUD_VISIBILITY_HEARTS_MAGIC_MINIMAP");
+
+            // @mod
+            
+            if ((bottle_hud_alpha != 0) && (bottle_hud_alpha > dimmingAlpha)) {
+                bottle_hud_alpha = dimmingAlpha;
+            }
+            
+
+
+            break;
+
+        case HUD_VISIBILITY_A_HEARTS_MAGIC_MINIMAP:
+            recomp_printf("HUD_VISIBILITY_A_HEARTS_MAGIC_MINIMAP");
+
+            // @mod
+            
+            if ((bottle_hud_alpha != 0) && (bottle_hud_alpha > dimmingAlpha)) {
+                bottle_hud_alpha = dimmingAlpha;
+            }
+        
+
+            break;
+
+        case HUD_VISIBILITY_B_MAGIC:
+            recomp_printf("HUD_VISIBILITY_B_MAGIC");
+            // @mod
+            
+            if ((bottle_hud_alpha != 0) && (bottle_hud_alpha > dimmingAlpha)) {
+                bottle_hud_alpha = dimmingAlpha;
+            }
+            
+
+            break;
+
+        case HUD_VISIBILITY_A_B:
+            recomp_printf("HUD_VISIBILITY_A_B");
+            // @mod
+            if ((bottle_hud_alpha != 0) && (bottle_hud_alpha > dimmingAlpha)) {
+                bottle_hud_alpha = dimmingAlpha;
+            }
+            
+            break;
+
+        case HUD_VISIBILITY_A_B_HEARTS_MAGIC_MINIMAP:
+            recomp_printf("HUD_VISIBILITY_A_B_HEARTS_MAGIC_MINIMAP");
+            // @mod
+            if ((bottle_hud_alpha != 0) && (bottle_hud_alpha > dimmingAlpha)) {
+                bottle_hud_alpha = dimmingAlpha;
+            }
+            
+            break;
+    }
+    recomp_printf(" dimmingAlpha = %i,", dimmingAlpha);
+    recomp_printf(" bottle_hud_alpha = %i\n", bottle_hud_alpha);
 }
