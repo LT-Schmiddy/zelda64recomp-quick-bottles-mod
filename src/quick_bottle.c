@@ -4,6 +4,7 @@
 #include "proxymm_kv.h"
 
 #include "recomputils.h"
+#include "recompconfig.h"
 
 #include "macros.h"
 #include "z64interface.h"
@@ -107,6 +108,13 @@ void QuickBottle_UpdateSelectedBottleIfInvalid(int direction) {
     if (!quickBottle.numberOfBottles || direction == 0) {
         return;
     }
+
+    BottleHudRoundRobin rr = recomp_get_config_u32("bottle-round-robin");
+    if (rr == BOTTLE_ROUND_ROBIN_REVERSE) {
+        direction = - direction;
+    }
+
+    int normal_direction = direction / ABS(direction);
     while (!QuickBottle_IsValidBottleItem(QuickBottle_GetSelectedBottleId())) {
         quickBottle.bottleIndex += direction;
         // Wraping:
@@ -124,10 +132,15 @@ void QuickBottle_Cycle(s8 offset) {
         return;
     }
 
-    int direction = offset / ABS(offset);
+    BottleHudRoundRobin rr = recomp_get_config_u32("bottle-round-robin");
+    if (rr == BOTTLE_ROUND_ROBIN_REVERSE) {
+        offset = - offset;
+    }
+
+    int normal_direction = offset / ABS(offset);
 
     for (int i = 0; i < ABS(offset); i++) {
-        quickBottle.bottleIndex += direction;
+        quickBottle.bottleIndex += normal_direction;
         // Wraping:
         if (quickBottle.bottleIndex > MAX_BOTTLE_INDEX) {
             quickBottle.bottleIndex = 0;
@@ -196,10 +209,8 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
                 Player_UseItem(play, this, QuickBottle_GetSelectedBottleId());
                 quickBottle.triggered = true;
                 quickBottle.post_release_timer = 0;
-                // Automatically put away empty bottles.
-                if (QuickBottle_GetSelectedBottleId() == ITEM_BOTTLE) {
-                    quickBottle.auto_put_away_timer = 0;
-                }
+                // Automatically put away bottles.
+                quickBottle.auto_put_away_timer = 0;
             }
         }
         else {
@@ -213,28 +224,31 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
         } else {
             // Audio_PlaySfx(NA_SE_SY_WIN_OPEN);
         }
-
+        BottleHudLayoutType layout_index = recomp_get_config_u32("bottle-hud-layout");
+        
         if (BtnStateDUp.press) {
-            QuickBottle_Cycle(-3);
+            QuickBottle_Cycle(hud_layouts[layout_index].cycle_directions.up);
             quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
-            validate_direction = -1;
+            validate_direction = hud_layouts[layout_index].cycle_directions.up;
 
         }
 
         if (BtnStateDLeft.press) {
-            QuickBottle_Cycle(-1);
+            QuickBottle_Cycle(hud_layouts[layout_index].cycle_directions.left);
             quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
-            validate_direction = -1;
+            validate_direction = hud_layouts[layout_index].cycle_directions.left;
         }
 
         if (BtnStateDRight.press) {
-            QuickBottle_Cycle(1);
+            QuickBottle_Cycle(hud_layouts[layout_index].cycle_directions.right);
             quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
+            validate_direction = hud_layouts[layout_index].cycle_directions.right;
         }
 
         if (BtnStateDDown.press) {
-            QuickBottle_Cycle(3);
+            QuickBottle_Cycle(hud_layouts[layout_index].cycle_directions.down);
             quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
+            validate_direction = hud_layouts[layout_index].cycle_directions.down;
         }
 
     } else{
@@ -266,6 +280,14 @@ RECOMP_HOOK_RETURN("Player_ProcessItemButtons") void post_Player_ProcessItemButt
 }
 
 RECOMP_PATCH void Inventory_UpdateBottleItem(PlayState* play, u8 item, u8 btn) {
+    Player* this = GET_PLAYER(play);
+
+    // A C button was used. Unset this flag.
+    if (btn != 0) {
+        quickBottle.triggered = false;
+    }
+    // recomp_printf("btn = %i\n", btn);
+    // recomp_printf("this->heldItemButton = %i\n", this->heldItemButton);
     if (quickBottle.triggered) {
         quickBottle.triggered = false;
         gSaveContext.save.saveInfo.inventory.items[QuickBottle_GetSelectedInventorySlot()] = item;
