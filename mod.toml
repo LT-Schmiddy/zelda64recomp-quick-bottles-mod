@@ -73,10 +73,21 @@ default = "On"
 [[manifest.config_options]]
 id = "bottle-hud-layout"
 name = "Bottle Hud Layout"
-description = "Test enum config option"
+description = """
+1 = Single
+2 = Horizontal
+3 = Vertical - Bottom Up
+4 = Vertical - Top Down
+5 = Two Rows
+6 = Two Columns
+7 = Horizontal - Gapless
+8 = Vertical - Bottom Up - Gapless
+9 = Vertical - Top Down - Gapless
+
+"""
 type = "Enum"
-options = [ "Single", "Line", "Top Down", "Bottom Up", "Two Rows", "Two Columns" ]
-default = "Line"
+options = [ "1", "2", "3", "4", "5", "6", "7", "8", "9" ]
+default = "2"
 
 [[manifest.config_options]]
 id = "bottle-selection-style"

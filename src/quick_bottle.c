@@ -263,6 +263,7 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
     } 
     
     if (quickBottle.auto_put_away_timer == BOTTLE_AUTO_PUT_AWAY_TIME && QuickBottle_IsValidBottleItem(this->heldItemId)) {
+        quickBottle.triggered = false;
         Player_UseItem(play, this, ITEM_NONE);
     }
 
@@ -282,12 +283,8 @@ RECOMP_HOOK_RETURN("Player_ProcessItemButtons") void post_Player_ProcessItemButt
 RECOMP_PATCH void Inventory_UpdateBottleItem(PlayState* play, u8 item, u8 btn) {
     Player* this = GET_PLAYER(play);
 
-    // A C button was used. Unset this flag.
-    if (btn != 0) {
-        quickBottle.triggered = false;
-    }
-    // recomp_printf("btn = %i\n", btn);
-    // recomp_printf("this->heldItemButton = %i\n", this->heldItemButton);
+    recomp_printf("btn = %i\n", btn);
+    recomp_printf("this->heldItemButton = %i\n", this->heldItemButton);
     if (quickBottle.triggered) {
         quickBottle.triggered = false;
         gSaveContext.save.saveInfo.inventory.items[QuickBottle_GetSelectedInventorySlot()] = item;
