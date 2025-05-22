@@ -229,26 +229,26 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
         
         if (BtnStateDUp.press) {
             QuickBottle_Cycle(hud_layouts[layout_index].cycle_directions.up);
-            quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
+            quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME; // Guess we're a using the bottle, then.
             validate_direction = hud_layouts[layout_index].cycle_directions.up;
 
         }
 
         if (BtnStateDLeft.press) {
             QuickBottle_Cycle(hud_layouts[layout_index].cycle_directions.left);
-            quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
+            quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME; // Guess we're a using the bottle, then.
             validate_direction = hud_layouts[layout_index].cycle_directions.left;
         }
 
         if (BtnStateDRight.press) {
             QuickBottle_Cycle(hud_layouts[layout_index].cycle_directions.right);
-            quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
+            quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME; // Guess we're a using the bottle, then.
             validate_direction = hud_layouts[layout_index].cycle_directions.right;
         }
 
         if (BtnStateDDown.press) {
             QuickBottle_Cycle(hud_layouts[layout_index].cycle_directions.down);
-            quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME;
+            quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME; // Guess we're a using the bottle, then.
             validate_direction = hud_layouts[layout_index].cycle_directions.down;
         }
 
@@ -268,7 +268,7 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
         Player_UseItem(play, this, ITEM_NONE);
     }
 
-    if (QuickBottle_IsValidBottleItem(this->heldItemId) /*&& !BtnStateEquips.press*/) {
+    if (quickBottle.triggered) {
         skip_regular_processing = true;
         this->stateFlags1 |= PLAYER_STATE1_20000000;
     }
@@ -284,8 +284,8 @@ RECOMP_HOOK_RETURN("Player_ProcessItemButtons") void post_Player_ProcessItemButt
 RECOMP_PATCH void Inventory_UpdateBottleItem(PlayState* play, u8 item, u8 btn) {
     Player* this = GET_PLAYER(play);
 
-    recomp_printf("btn = %i\n", btn);
-    recomp_printf("this->heldItemButton = %i\n", this->heldItemButton);
+    // recomp_printf("btn = %i\n", btn);
+    // recomp_printf("this->heldItemButton = %i\n", this->heldItemButton);
     if (quickBottle.triggered) {
         quickBottle.triggered = false;
         gSaveContext.save.saveInfo.inventory.items[QuickBottle_GetSelectedInventorySlot()] = item;
