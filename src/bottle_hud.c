@@ -40,6 +40,7 @@ static s16 bottle_hud_alpha = 0b011111111111111;
 
 BottleHudLayoutConfig hud_layouts[] = {
     { // SINGLE
+        false,
         {0, 0, -1, 1},
         {
             BOTTLE_GRID(0, 0),
@@ -50,6 +51,7 @@ BottleHudLayoutConfig hud_layouts[] = {
             BOTTLE_GRID(0, 0),
         },
     },{ // HORIZONTAL
+        false,
         {0, 0, -1, 1},
         {
             BOTTLE_GRID(0, 0),
@@ -60,6 +62,7 @@ BottleHudLayoutConfig hud_layouts[] = {
             BOTTLE_GRID(5, 0),
         }
     },{ // VERTICAL TOP DOWN
+        false,
         {1, -1, 0, 0},
         {
             BOTTLE_GRID(0, 0),
@@ -70,6 +73,7 @@ BottleHudLayoutConfig hud_layouts[] = {
             BOTTLE_GRID(0, 5),
         }
     },{ // VERTICAL BOTTOM UP
+        false,
         {-1, 1, 0, 0},
         {
             BOTTLE_GRID(0, 5),
@@ -80,6 +84,7 @@ BottleHudLayoutConfig hud_layouts[] = {
             BOTTLE_GRID(0, 0),
         },
     },{ // TWO ROWS
+        false,
         {3, -3, -1, 1},
         {
             BOTTLE_GRID(0, 0),
@@ -89,7 +94,8 @@ BottleHudLayoutConfig hud_layouts[] = {
             BOTTLE_GRID(1, 1),
             BOTTLE_GRID(2, 1),
         }
-    },{ // TWO ROWS
+    },{ // TWO COLUMNS
+        false,
         {2, -2, -1, 1},
         {
             BOTTLE_GRID(0, 0),
@@ -99,6 +105,39 @@ BottleHudLayoutConfig hud_layouts[] = {
             BOTTLE_GRID(0, 2),
             BOTTLE_GRID(1, 2),
         }
+    },{ // HORIZONTAL - GAPLESS
+        true,
+        {0, 0, -1, 1},
+        {
+            BOTTLE_GRID(0, 0),
+            BOTTLE_GRID(1, 0),
+            BOTTLE_GRID(2, 0),
+            BOTTLE_GRID(3, 0),
+            BOTTLE_GRID(4, 0),
+            BOTTLE_GRID(5, 0),
+        }
+    },{ // VERTICAL TOP DOWN - GAPLESS
+        true,
+        {1, -1, 0, 0},
+        {
+            BOTTLE_GRID(0, 0),
+            BOTTLE_GRID(0, 1),
+            BOTTLE_GRID(0, 2),
+            BOTTLE_GRID(0, 3),
+            BOTTLE_GRID(0, 4),
+            BOTTLE_GRID(0, 5),
+        }
+    },{ // VERTICAL BOTTOM UP - GAPLESS
+        true,
+        {-1, 1, 0, 0},
+        {
+            BOTTLE_GRID(0, 5),
+            BOTTLE_GRID(0, 4),
+            BOTTLE_GRID(0, 3),
+            BOTTLE_GRID(0, 2),
+            BOTTLE_GRID(0, 1),
+            BOTTLE_GRID(0, 0),
+        },
     }
 };
 
@@ -154,15 +193,18 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
                 0, 0,
                 ICON_DSDX, ICON_DTDY);
         } else {
-            for (int i = 0; i < 6; i++) {
-                
-                int draw_bottle = i;
-                if (recomp_get_config_u32("bottle-round-robin")) {
-                    draw_bottle = quickBottle.bottleIndex + i;
-                    if (draw_bottle > 5) {
-                        draw_bottle -= 6;
+            int draw_bottle = (rr ? quickBottle.bottleIndex : 0) - 1;
+            int max_bottle_draws = hud_layouts[layout_index].gapless ? quickBottle.numberOfBottles : 6;
+            for (int i = 0; i < max_bottle_draws; i++) {
+
+                do {
+                    draw_bottle++;
+                    if (rr) {
+                        if (draw_bottle > 5) {
+                            draw_bottle = 0;
+                        }
                     }
-                }
+                } while ( (hud_layouts[layout_index].gapless && !QuickBottle_IsValidBottleItem(QuickBottle_GetBottleId(draw_bottle))));
 
                 if (selection_type == BOTTLE_SELECTION_BORDER && ((i == quickBottle.bottleIndex && !rr) || (i == 0 && rr))){
                     // gDPLoadTextureBlock(OVERLAY_DISP++, gEquippedItemOutlineTex, G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,

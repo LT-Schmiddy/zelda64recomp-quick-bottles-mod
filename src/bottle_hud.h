@@ -39,10 +39,11 @@ typedef struct {
 } BottleScreenPosition;
 
 typedef struct {
+    bool gapless;
     BottleCycleDirections cycle_directions;
     BottleScreenPosition screen_positions[6];
 } BottleHudLayoutConfig;
 
-extern BottleHudLayoutConfig hud_layouts[6];
+extern BottleHudLayoutConfig hud_layouts[9];
 
 #endif
