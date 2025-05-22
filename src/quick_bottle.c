@@ -172,7 +172,6 @@ RECOMP_CALLBACK("*", recomp_on_init) void setup_quickBottle() {
 
 RECOMP_CALLBACK("*", recomp_on_load_save) void load_quickBottle() {
     quickBottle.bottleIndex = KV_Slot_Get_S32(LOAD_SAVE_SELECTION_KEY, 0 );
-
 }
 
 RECOMP_CALLBACK("*", recomp_on_owl_save) void save_quickBottle_Owl() {
@@ -203,6 +202,7 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
         quickBottle.post_release_timer++;
     }
 
+    // Are we using a bottle? Or just done switching:
     if (BtnStateL.rel) {
         if (quickBottle.quick_press_timer < BOTTLE_QUICK_PRESS_TIME) {          
             if (QuickBottle_IsValidBottleItem(QuickBottle_GetSelectedBottleId())){
@@ -231,7 +231,6 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
             QuickBottle_Cycle(hud_layouts[layout_index].cycle_directions.up);
             quickBottle.quick_press_timer = BOTTLE_QUICK_PRESS_TIME; // Guess we're a using the bottle, then.
             validate_direction = hud_layouts[layout_index].cycle_directions.up;
-
         }
 
         if (BtnStateDLeft.press) {
@@ -274,6 +273,8 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
     }
 }
 
+// We can aid compatability with DPad mods by preventing the Player_ProcessItemButtons from running, 
+// instead of needing to patch it ourselves
 RECOMP_HOOK_RETURN("Player_ProcessItemButtons") void post_Player_ProcessItemButtons() {
     if (skip_regular_processing) {
         captured_player->stateFlags1 &= ~PLAYER_STATE1_20000000;
@@ -281,11 +282,11 @@ RECOMP_HOOK_RETURN("Player_ProcessItemButtons") void post_Player_ProcessItemButt
     }
 }
 
+// Handles changing bottle in inventory
 RECOMP_PATCH void Inventory_UpdateBottleItem(PlayState* play, u8 item, u8 btn) {
     Player* this = GET_PLAYER(play);
 
-    // recomp_printf("btn = %i\n", btn);
-    // recomp_printf("this->heldItemButton = %i\n", this->heldItemButton);
+    // If this is true, use quickbottles handling instead.
     if (quickBottle.triggered) {
         quickBottle.triggered = false;
         gSaveContext.save.saveInfo.inventory.items[QuickBottle_GetSelectedInventorySlot()] = item;
@@ -355,7 +356,7 @@ RECOMP_PATCH void Player_Action_68(Player* this, PlayState* play) {
                 if ((this->av2.actionVar2 != 0) && (temp_ft5 == 0)) {
                     Player_PlaySfx(this, NA_SE_IT_SCOOP_UP_WATER);
                 }
-
+                // Literally the only change. Helps mate sure empty bottles can catch items.
                 if (Player_GetItemOnButton(play, this, this->heldItemButton) == ITEM_BOTTLE || quickBottle.post_release_timer < BOTTLE_POST_RELEASE_TIME) {
                     Actor* interactRangeActor = this->interactRangeActor;
 

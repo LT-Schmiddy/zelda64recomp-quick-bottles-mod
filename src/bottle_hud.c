@@ -164,6 +164,7 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
         BottleHudLayoutType layout_index = recomp_get_config_u32("bottle-hud-layout");
         BottleHudSelectionType selection_type = recomp_get_config_u32("bottle-selection-style");
         BottleHudRoundRobin rr = recomp_get_config_u32("bottle-round-robin");
+        // Load bottle icons once:
         if (!bottle_item_icons_loaded) {
             for (int i = 0; i < NUMBER_BOTTLE_ITEMS; i++) {
                 CmpDma_LoadFile(SEGMENT_ROM_START(icon_item_static_yar), bottle_items[i], bottle_item_textures[i], sizeof(bottle_item_textures[i]));
@@ -177,10 +178,9 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
         gEXForceUpscale2D(OVERLAY_DISP++, 1);
         // Set a fullscreen scissor.
         gEXPushScissor(OVERLAY_DISP++);
-
         gEXSetScissor(OVERLAY_DISP++, G_SC_NON_INTERLACE, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_RIGHT, 0, 0, 0, SCREEN_HEIGHT);
         
-
+        // Special handling for the single display mode.
         if (layout_index == BOTTLE_HUD_SINGLE) {
             int i = quickBottle.bottleIndex;
             gDPLoadTextureBlock(OVERLAY_DISP++, bottle_item_textures[GetBottleIconIndex(i)], G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
@@ -193,22 +193,26 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
                 0, 0,
                 ICON_DSDX, ICON_DTDY);
         } else {
+            // Draws the bottle icons based on the hud_layout index.
+            // i represents the index of the current grid position.
+            // draw_bottle is the bottle index to draw.
+            // max_bottle_draws is used to stop early in gapless mode.
             int draw_bottle = (rr ? quickBottle.bottleIndex : 0) - 1;
             int max_bottle_draws = hud_layouts[layout_index].gapless ? quickBottle.numberOfBottles : 6;
             for (int i = 0; i < max_bottle_draws; i++) {
-
                 do {
                     draw_bottle++;
-                    if (rr) {
+                    if (rr) { // Round Robin wrap-around.
                         if (draw_bottle > 5) {
                             draw_bottle = 0;
                         }
                     }
+                // If we're in gapless mode, skip empty slots until we find another bottle to draw.
+                // Calculating max_bottle_draws ahead of time ensures we never draw duplicates.
                 } while ( (hud_layouts[layout_index].gapless && !QuickBottle_IsValidBottleItem(QuickBottle_GetBottleId(draw_bottle))));
 
                 if (selection_type == BOTTLE_SELECTION_BORDER && ((i == quickBottle.bottleIndex && !rr) || (i == 0 && rr))){
-                    // gDPLoadTextureBlock(OVERLAY_DISP++, gEquippedItemOutlineTex, G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
-                    //     G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+                    // Drawing the item outline for border selection mode:
                     gDPLoadTextureBlock(OVERLAY_DISP++, gEquippedItemOutlineTex, G_IM_FMT_I, G_IM_SIZ_8b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
                         G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                     gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, bottle_hud_alpha);
@@ -223,6 +227,7 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
                 if (QuickBottle_IsValidBottleItem(QuickBottle_GetBottleId(draw_bottle))) {
                     gDPLoadTextureBlock(OVERLAY_DISP++, bottle_item_textures[GetBottleIconIndex(draw_bottle)], G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
                         G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+                    // Fadeout for fade selection mode:
                     gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 255, 255, 255, bottle_hud_alpha / ((selection_type != BOTTLE_SELECTION_FADE || draw_bottle == quickBottle.bottleIndex) ? 1 : UNSELECTED_BOTTLE_FADE));
                     gEXTextureRectangle(OVERLAY_DISP++, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_LEFT,
                         (hud_layouts[layout_index].screen_positions[i].x - (ICON_SIZE/2)) * 4, (hud_layouts[layout_index].screen_positions[i].y - (ICON_SIZE/2)) * 4,
