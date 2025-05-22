@@ -198,6 +198,7 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
         return;
     }
 
+    // Used to ensure that empty bottles catch stuff properly:
     if (quickBottle.post_release_timer < BOTTLE_POST_RELEASE_TIME) {
         quickBottle.post_release_timer++;
     }
@@ -267,7 +268,7 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
         Player_UseItem(play, this, ITEM_NONE);
     }
 
-    if (QuickBottle_IsValidBottleItem(this->heldItemId) && !BtnStateEquips.press) {
+    if (QuickBottle_IsValidBottleItem(this->heldItemId) /*&& !BtnStateEquips.press*/) {
         skip_regular_processing = true;
         this->stateFlags1 |= PLAYER_STATE1_20000000;
     }
