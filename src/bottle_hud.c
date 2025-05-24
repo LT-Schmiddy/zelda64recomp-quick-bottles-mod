@@ -18,7 +18,7 @@
 #define ICON_SIZE 16
 #define ICON_DIST 14
 #define ICON_POS_X 24
-#define ICON_POS_Y 187
+#define ICON_POS_Y 186
 
 #define ICON_SPACING_X 14
 #define ICON_SPACING_Y 16
