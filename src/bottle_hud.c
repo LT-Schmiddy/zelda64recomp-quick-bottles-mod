@@ -152,9 +152,10 @@ int GetBottleSelectedIconIndex() {
 }
 
 RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
-
+    Player* player = GET_PLAYER(play);
     // If there aren't any bottles, do nothing.
-    if (!quickBottle.numberOfBottles) {
+    if (!quickBottle.numberOfBottles || player->currentMask == PLAYER_MASK_GIANT) {
+        
         return;
     }
 
@@ -294,8 +295,6 @@ RECOMP_HOOK("Interface_UpdateButtonAlphas") void Interface_UpdateBottleAlpha(Pla
 RECOMP_HOOK("Interface_UpdateHudAlphas") void pre_Interface_UpdateHudAlphas(PlayState* play, s16 dimmingAlpha) {
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
     s16 risingAlpha = 255 - dimmingAlpha;
-
-
     
     switch (gSaveContext.nextHudVisibility) {
         case HUD_VISIBILITY_NONE:

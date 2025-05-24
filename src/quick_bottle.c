@@ -193,7 +193,8 @@ RECOMP_HOOK("Player_ProcessItemButtons") void pre_Player_ProcessItemButtons(Play
     QuickBottle_GetNumberOfBottles();
 
     captured_player = this;
-    if (!quickBottle.numberOfBottles ) {
+    if (!quickBottle.numberOfBottles || this->currentMask == PLAYER_MASK_GIANT) {
+        quickBottle.triggered = false;
         return;
     }
 
