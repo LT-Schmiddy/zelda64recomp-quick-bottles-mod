@@ -8,21 +8,21 @@
 id = "mm_quickbottles"
 
 # Version of this mod.
-version = "0.1.0"
+version = "1.0.0"
 
 # The name that will show up for this mod in the mod menu. This should be human readable.
 display_name = "Quick Bottles"
 
 # The description that will show up when this mod is displayed in the mod menu. This should be human readable.
 description =  """
-This is an example mod for Majora's Mask: Recompiled that can be used as a template for creating mods. \
-When this mod is enabled, you will always perform a quickspin when swinging your sword.
+This mod moves the minimap toggle to the mod menu, and binds your bottles to L.
 
-For more details, see https://github.com/Zelda64Recomp/MMRecompModTemplate."""
+Tap L to use a bottle. Hold L and use the DPad to select one.
+"""
 
 # A short description that will show up in this mod's entry in the mod list. This should be human readable and kept short
 # to prevent it from being cut off due to the limited space.
-short_description = "Bottles are Quick"
+short_description = "Quick access to all your bottles with L."
 
 # Authors of this mod.
 authors = [ "LT_Schmiddy" ]
@@ -37,7 +37,7 @@ minimum_recomp_version = "1.2.0"
 dependencies = [
 # Example dependency:
 #    "modname:1.0.0"
-    "ProxyMM_KV:0.0.4"
+    "ProxyMM_KV:0.0.5"
 ]
 
 # Native libraries (e.g. DLLs) and the functions they export.
@@ -60,12 +60,12 @@ func_reference_syms_file = "Zelda64RecompSyms/mm.us.rev1.syms.toml"
 data_reference_syms_files = [ "Zelda64RecompSyms/mm.us.rev1.datasyms.toml", "Zelda64RecompSyms/mm.us.rev1.datasyms_static.toml" ]
 
 # Additional files to include in the mod.
-additional_files = [ ]
+additional_files = [ "thumb.dds" ]
 
 [[manifest.config_options]]
 id = "minimap-visible"
 name = "Minimap Visible"
-description = "Test enum config option"
+description = "This mod completely repurposes the button normally used for toggling the minimap. Toggle it here instead."
 type = "Enum"
 options = [ "On", "Off" ]
 default = "On"
@@ -74,6 +74,10 @@ default = "On"
 id = "bottle-hud-layout"
 name = "Bottle Hud Layout"
 description = """
+The Layout of the Bottle HUD. DPad selection inputs are configured to match.
+
+Normally, an empty space will be drawn for any bottle the player doesn't have. The 'Gapless' variants eliminate this space.
+
 1 = Single
 2 = Horizontal
 3 = Vertical - Bottom Up
@@ -92,7 +96,12 @@ default = "2"
 [[manifest.config_options]]
 id = "bottle-selection-style"
 name = "Bottle Selection Style"
-description = "Test enum config option"
+description = """How should the Bottle HUD indicate the selected bottle:
+Fade - All unselected bottles will be rendered at less that full transparancy.
+Border - The Item Equip border will be drawn around the selected bottle.
+"""
+
+
 type = "Enum"
 options = [ "Fade", "Border", ]
 default = "Fade"
@@ -100,7 +109,11 @@ default = "Fade"
 [[manifest.config_options]]
 id = "bottle-round-robin"
 name = "Round Robin Mode"
-description = "Test enum config option"
+description = """
+Selected Bottle is always shown in the first position.
+
+The 'Reverse' mirrors the DPad selection inputs along both axes, which may feel more natural to some playes using this mode.
+"""
 type = "Enum"
 options = [ "Off", "On", "Reverse" ]
 default = "Off"

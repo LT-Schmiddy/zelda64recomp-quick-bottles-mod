@@ -1,7 +1,7 @@
 {
     "name": "Quick_Bottles",
-    "version_number": "0.1.0",
+    "version_number": "1.0.0",
     "website_url": "https://github.com/LT-Schmiddy/zelda64recomp-quick-bottles-mod",
-    "description": "Bottles are Quick",
+    "description": "Quick access to all your bottles with L.",
     "dependencies": []
 }
