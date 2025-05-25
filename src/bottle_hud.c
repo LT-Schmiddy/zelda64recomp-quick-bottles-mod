@@ -198,8 +198,16 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
             // i represents the index of the current grid position.
             // draw_bottle is the bottle index to draw.
             // max_bottle_draws is used to stop early in gapless mode.
+
             int draw_bottle = (rr ? quickBottle.bottleIndex : 0) - 1;
             int max_bottle_draws = hud_layouts[layout_index].gapless ? quickBottle.numberOfBottles : 6;
+
+            // Handling Autohide mode
+            if ((recomp_get_config_u32("bottle-autohide") == BOTTLE_AUTOHIDE_INSTANT && !BtnStateL.cur) || (recomp_get_config_u32("bottle-autohide") == BOTTLE_AUTOHIDE_ON && quickBottle.quick_press_timer < BOTTLE_QUICK_PRESS_TIME)) {
+                max_bottle_draws = 1;
+                draw_bottle = quickBottle.bottleIndex - 1;
+            }
+
             for (int i = 0; i < max_bottle_draws; i++) {
                 do {
                     draw_bottle++;
@@ -212,11 +220,7 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
                 // Calculating max_bottle_draws ahead of time ensures we never draw duplicates.
                 } while ( (hud_layouts[layout_index].gapless && !QuickBottle_IsValidBottleItem(QuickBottle_GetBottleId(draw_bottle))));
 
-                if (recomp_get_config_u32("bottle-autohide") != 0 && quickBottle.quick_press_timer < BOTTLE_QUICK_PRESS_TIME) {
-                    max_bottle_draws = 1;
-                    i = 0;
-                    draw_bottle = quickBottle.bottleIndex;
-                }
+
 
                 if (selection_type == BOTTLE_SELECTION_BORDER && ((i == quickBottle.bottleIndex && !rr) || (i == 0 && rr))){
                     // Drawing the item outline for border selection mode:
