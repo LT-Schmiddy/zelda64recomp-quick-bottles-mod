@@ -112,9 +112,37 @@ name = "Round Robin Mode"
 description = """
 Selected Bottle is always shown in the first position.
 
-The 'Reverse' mirrors the DPad selection inputs along both axes, which may feel more natural to some playes using this mode.
+The 'Reverse' mirrors the DPad selection inputs along both axes, which may feel more natural to some players using this mode.
 """
 type = "Enum"
 options = [ "Off", "On", "Reverse" ]
 default = "Off"
 
+[[manifest.config_options]]
+id = "bottle-autohide"
+name = "Autohide"
+description = """
+While holding L it will respect your selected Bottle Hud Layout as normal.
+
+While L is released, the selected bottle is shown in the first position and the others are hidden.
+
+"""
+type = "Enum"
+options = [ "Off", "On" ]
+default = "Off"
+
+[[manifest.config_options]]
+id = "bottle-quick-press-time"
+name = "Quick Press Time"
+description = """
+How long you are allowed to hold L to use the selected bottle.
+
+It's recommended to keep Quick Press Time at around 5 for Autohide, and around 10 without Autohide.
+"""
+type = "Number"
+min = 1
+max = 15
+step = 1
+precision = 1
+percent = false
+default = 10

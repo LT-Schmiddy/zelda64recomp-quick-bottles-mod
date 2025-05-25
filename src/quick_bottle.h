@@ -7,7 +7,7 @@
 #define MAX_BOTTLE_INDEX 5
 #define NUMBER_BOTTLE_ITEMS 22
 #define FIRST_BOTTLE_INVENTORY_SLOT 18
-#define BOTTLE_QUICK_PRESS_TIME 10
+#define BOTTLE_QUICK_PRESS_TIME recomp_get_config_u32("bottle-quick-press-time")
 #define BOTTLE_POST_RELEASE_TIME 20
 #define BOTTLE_AUTO_PUT_AWAY_TIME 3
 

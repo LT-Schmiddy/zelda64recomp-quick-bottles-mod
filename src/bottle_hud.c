@@ -212,6 +212,12 @@ RECOMP_HOOK("Interface_DrawCButtonIcons") void DrawBottleIcon(PlayState* play) {
                 // Calculating max_bottle_draws ahead of time ensures we never draw duplicates.
                 } while ( (hud_layouts[layout_index].gapless && !QuickBottle_IsValidBottleItem(QuickBottle_GetBottleId(draw_bottle))));
 
+                if (recomp_get_config_u32("bottle-autohide") != 0 && quickBottle.quick_press_timer < BOTTLE_QUICK_PRESS_TIME) {
+                    max_bottle_draws = 1;
+                    i = 0;
+                    draw_bottle = quickBottle.bottleIndex;
+                }
+
                 if (selection_type == BOTTLE_SELECTION_BORDER && ((i == quickBottle.bottleIndex && !rr) || (i == 0 && rr))){
                     // Drawing the item outline for border selection mode:
                     gDPLoadTextureBlock(OVERLAY_DISP++, gEquippedItemOutlineTex, G_IM_FMT_I, G_IM_SIZ_8b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
