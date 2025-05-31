@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.2
+
+* Fixes an issue where the timer for hotspring water wasn't being set when using a bottle on a C button.
+* Fixes selected bottle not being saved when quicksaving.
+
 ## 1.1.1
 
 * No code changes.
