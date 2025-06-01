@@ -311,7 +311,7 @@ RECOMP_PATCH void Inventory_UpdateBottleItem(PlayState* play, u8 item, u8 btn) {
         if (item == ITEM_HOT_SPRING_WATER) {
             Interface_StartBottleTimer(60, QuickBottle_GetSelectedInventorySlot());
         }
-
+        return;
     }
 
     // recomp_printf("Button %i = 0x%02X, (%i)\n", btn, GET_CUR_FORM_BTN_SLOT(btn), GET_CUR_FORM_BTN_SLOT(btn));

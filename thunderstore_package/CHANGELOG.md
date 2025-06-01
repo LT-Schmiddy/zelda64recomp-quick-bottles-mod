@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.3
+
+* Fixed a bug in 1.1.2 where bottles were being written to the wrong inventory slots.
+
 ## 1.1.2
 
 * Fixes an issue where the timer for hotspring water wasn't being set when using a bottle on a C button.
