@@ -309,7 +309,8 @@ RECOMP_PATCH void Inventory_UpdateBottleItem(PlayState* play, u8 item, u8 btn) {
         }
 
         if (item == ITEM_HOT_SPRING_WATER) {
-            Interface_StartBottleTimer(60, QuickBottle_GetSelectedInventorySlot());
+            Interface_StartBottleTimer(60, quickBottle.bottleIndex);
+            // Interface_StartBottleTimer(60, QuickBottle_GetSelectedInventorySlot());
         }
         return;
     }
@@ -323,7 +324,7 @@ RECOMP_PATCH void Inventory_UpdateBottleItem(PlayState* play, u8 item, u8 btn) {
 
     play->pauseCtx.cursorItem[PAUSE_ITEM] = item;
     gSaveContext.buttonStatus[btn] = BTN_ENABLED;
-
+    
     if (item == ITEM_HOT_SPRING_WATER) {
         Interface_StartBottleTimer(60, GET_CUR_FORM_BTN_SLOT(btn) - SLOT_BOTTLE_1);
     }
